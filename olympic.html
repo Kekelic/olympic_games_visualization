@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            background-color: #e9f2f0;
+        }
+
+        text {
+            font-size: 18px;
+            font-family: Open Sans, sans-serif;
+        }
+
+        .tooltipText {
+            font-size: 12px;
+        }
+
+        .tick text {
+            fill: #777777;
+        }
+
+        .xAxis .tick:nth-child(2) text {
+            text-anchor: start;
+        }
+
+        .tick line {
+            shape-rendering: CrispEdges;
+            stroke: #dddddd;
+        }
+
+        .tick line.origin {
+            stroke: #aaaaaa;
+        }
+
+        path.domain {
+            display: none;
+        }
+
+        svg {
+            background-color: #e9f2f0;
+        }
+
+        svg.label {
+            overflow: visible
+        }
+
+        .leftButtons {
+            width: 150px;
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 16px;
+            border-color: gray;
+            border-style: solid;
+            border-radius: 8px;
+            background-color: #8da9d6;
+            cursor: pointer;
+        }
+
+        .playButton {
+            border-color: gray;
+            border-style: solid;
+            border-radius: 8px;
+            background-color: #8da9d6;
+            color: white;
+            padding: 12px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.7;
+        }
+
+        .bottomDiv {
+            display: flex;
+            flex-direction: row;
+            margin-top: 40px;
+
+        }
+
+        .leftDiv {
+            width: 700px;
+            text-align: center;
+            margin-left: 20px;
+        }
+
+        .rightDiv {
+            width: 700px;
+            text-align: center;
+            margin-left: 40px;
+        }
+
+        .rightButtons {
+            margin-right: 10px;
+            width: 120px;
+            height: 30px;
+            font-size: 16px;
+            border-radius: 4px;
+            border-style: solid;
+            border-color: #757573;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .imageLabel {
+            margin: 10px;
+            border: 5px solid #555;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 80px;
+            height: 85px;
+            padding: 2px;
+            font-family: Open Sans, sans-serif;
+            background: #757573;
+            border: 0px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 14px;
+            line-height: 200%;
+        }
+
+        p {
+            margin: 0;
+
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+
+        var top_n = 10;
+        var height = 500;
+        var width = 750;
+        var tickDuration = 1000;
+
+        var currentMedalsShow = "all"
+        var changeMedalsButtonFlag = false
+
+        var svgLeft = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const margin = {
+            top: 80,
+            right: 0,
+            bottom: 5,
+            left: 20
+        };
+
+
+        var svgRight = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+
+        var colors = [
+            { name: 'EUN', color: '#B8BBB0' },
+            { name: 'USA', color: '#B17593' },
+            { name: 'GER', color: '#9F4500' },
+            { name: 'CHN', color: '#E2400E' },
+            { name: 'CUB', color: '#776EA0' },
+            { name: 'HUN', color: '#B18883' },
+            { name: 'KOR', color: '#BCAFBE' },
+            { name: 'FRA', color: '#9A677E' },
+            { name: 'AUS', color: '#492488' },
+            { name: 'ESP', color: '#D4690D' },
+            { name: 'RUS', color: '#9C7696' },
+            { name: 'UKR', color: '#80985E' },
+            { name: 'GBR', color: '#B9637E' },
+            { name: 'JPN', color: '#EEBFCB' },
+            { name: 'ITA', color: '#9A947F' },
+            { name: 'NED', color: '#9A7691' },
+            { name: 'ROC', color: '#C2B7BB' },
+            { name: 'CAN', color: '#FF4040' },
+            { name: 'GRE', color: '#86AFD7' },
+            { name: 'DEN', color: '#D34058' },
+            { name: 'AUT', color: '#E56958' },
+            { name: 'SUI', color: '#FF3333' },
+            { name: 'ZZX', color: '#B8BBB0' },
+            { name: 'BEL', color: '#995C1D' },
+            { name: 'NOR', color: '#A93253' },
+            { name: 'SWE', color: '#40837D' },
+            { name: 'ANZ', color: '#48477D' },
+            { name: 'FIN', color: '#AABCD5' },
+            { name: 'URS', color: '#E21C01' },
+            { name: 'TCH', color: '#A27388' },
+            { name: 'POL', color: '#EE8A9E' },
+            { name: 'ROU', color: '#995A3E' },
+            { name: 'FRG', color: '#A65314' },
+            { name: 'GDR', color: '#A65314' },
+            { name: 'BUL', color: '#9C9480' },
+        ];
+
+        let barPadding = 5
+
+        let titleLeft = svgLeft.append('text')
+            .attr('class', 'title')
+            .attr('y', '40px')
+            .attr('x', '140px')
+            .style('font-size', '26px')
+
+
+        let titleRight = svgRight.append('text')
+            .attr('class', 'title')
+            .attr('y', '40px')
+            .attr('x', '200px')
+            .style('font-size', '30px')
+            .html('All time medals 1896 - 1896');
+
+        let subTitleLeft = svgLeft.append("text")
+            .attr("class", "subTitle")
+            .attr("y", '55px')
+            .attr('x', margin.left)
+            .style('fill', '#339e45')
+            .html("[all medals]");
+
+        let subTitleRight = svgRight.append("text")
+            .attr("class", "subTitle")
+            .attr("y", '55px')
+            .attr('x', margin.left)
+            .style('fill', '#339e45')
+            .html("[all medals]");
+
+        let year = 1896;
+
+        d3.csv('olympic_full.csv').then(function (data) {
+            d3.csv('unique_full.csv').then(function (allTimeData) {
+
+                data.forEach(d => {
+                    d.value = +d.Medals,
+                        d.year = + d.Year,
+                        d.country_name = d.Country_Name,
+                        d.color = d.Color,
+                        d.country_code = d.Country_Code,
+                        d.flag = d.Flag,
+                        d.gold = d.Gold,
+                        d.silver = d.Silver,
+                        d.bronze = d.Bronze
+                });
+
+
+                let yearSlice = data.filter(d => d.year == year).slice(0, top_n);
+                yearSlice.forEach((d, i) => d.rank = i);
+
+                titleLeft.html(yearSlice[0].Host_country + ", " + yearSlice[0].Host_city + ": " + year);
+
+                let allTimeBestSlice = countAllTimeBest(year)
+
+                let xLeft = d3.scaleLinear()
+                    .domain([0, d3.max(yearSlice, d => d.value)])
+                    .range([margin.left, width - margin.right - 65]);
+
+                let xRight = d3.scaleLinear()
+                    .domain([0, d3.max(allTimeBestSlice, d => d.value)])
+                    .range([margin.left, width - margin.right - 65]);
+
+                let yLeft = d3.scaleLinear()
+                    .domain([top_n, 0])
+                    .range([height - margin.bottom, margin.top]);
+
+                let yRight = d3.scaleLinear()
+                    .domain([top_n, 0])
+                    .range([height - margin.bottom, margin.top]);
+
+                let xAxisLeft = d3.axisTop()
+                    .scale(xLeft)
+                    .ticks(10)
+                    .tickSize(-height);
+
+                let xAxisRight = d3.axisTop()
+                    .scale(xRight)
+                    .ticks(7)
+                    .tickSize(-height);
+
+
+                svgLeft.append('g')
+                    .attr('class', 'axis xAxis')
+                    .attr('transform', `translate(0, ${margin.top})`)
+                    .call(xAxisLeft)
+                    .selectAll('.tick line')//
+                    .classed('origin', d => d == 0);//
+
+                svgRight.append('g')
+                    .attr('class', 'axis xAxis')
+                    .attr('transform', `translate(0, ${margin.top})`)
+                    .call(xAxisRight)
+                    .selectAll('.tick line')//
+                    .classed('origin', d => d == 0);//
+
+                var mouseover = function (e, d) {
+                    tooltip
+                        .style("opacity", 1)
+                    d3.select(this)
+                        .style("stroke", "black")
+                        .style("opacity", 0.8)
+
+                    goldTooltipText.html("Gold: " + d.gold)
+                    silverTooltipText.html("Silver: " + d.silver)
+                    bronzeTooltipText.html("Bronze: " + d.bronze)
+                }
+
+                var mouseoverAllMedals = function (e, d) {
+                    tooltip
+                        .style("opacity", 1)
+                    d3.select(this)
+                        .style("stroke", "black")
+                        .style("opacity", 0.8)
+
+                    goldTooltipText.html("Gold: " + d.AllTimeGold)
+                    silverTooltipText.html("Silver: " + d.AllTimeSilver)
+                    bronzeTooltipText.html("Bronze: " + d.AllTimeBronze)
+                }
+
+
+                var mousemove = function (e, d) {
+                    tooltip
+                        .style("left", (d3.pointer(event)[0] + 20) + "px")
+                        .style("top", (d3.pointer(event)[1] + 20) + "px")
+                }
+
+                var mousemoveAllMedals = function (e, d) {
+                    tooltip
+                        .style("left", (d3.pointer(event)[0] + 20 + width) + "px")
+                        .style("top", (d3.pointer(event)[1] + 20) + "px")
+                }
+
+                var mouseleave = function (e, d) {
+                    tooltip
+                        .style("opacity", 0)
+                    d3.select(this)
+                        .style("stroke", "none")
+                        .style("opacity", 1)
+                }
+
+                svgLeft.selectAll('rect.bar')
+                    .data(yearSlice, d => d.country_name)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', xLeft(0) + 1)
+                    .attr('width', d => xLeft(d.value) - xLeft(0) - 1)
+                    .attr('y', d => yLeft(d.rank) + 5)
+                    .attr('height', yLeft(1) - yLeft(0) - barPadding)
+                    .style('fill', d => colors.find(item => item.name == d.country_code).color)
+                    .on("mouseover", mouseover)
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave);
+
+                svgRight.selectAll('rect.bar')
+                    .data(allTimeBestSlice, d => d.Country_Name)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', xRight(0) + 1)
+                    .attr('width', d => xRight(d.value) - xRight(0) - 1)
+                    .attr('y', d => yRight(d.rank) + 5)
+                    .attr('height', yRight(1) - yRight(0) - barPadding)
+                    .style('fill', d => colors.find(item => item.name == d.Country_Code).color)
+                    .on("mouseover", mouseoverAllMedals)
+                    .on("mousemove", mousemoveAllMedals)
+                    .on("mouseleave", mouseleave);
+
+
+                svgLeft.selectAll('text.label')
+                    .data(yearSlice, d => d.country_name)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'label')
+                    .attr('x', function (d) {
+                        if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                        else return xLeft(d.value) + 170
+                    })
+                    .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1)
+                    .style('text-anchor', 'end')
+                    .html(d => d.country_name)
+                    .on("mouseover", mouseover)
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave);
+
+                svgRight.selectAll('text.label')
+                    .data(allTimeBestSlice, d => d.Country_Name)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'label')
+                    .attr('x', function (d) {
+                        if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                        else return xRight(d.value) + 170
+                    })
+                    .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1)
+                    .style('text-anchor', 'end')
+                    .html(d => d.Country_Name)
+                    .on("mouseover", mouseoverAllMedals)
+                    .on("mousemove", mousemoveAllMedals)
+                    .on("mouseleave", mouseleave);
+
+                svgLeft.selectAll('image')
+                    .data(yearSlice, d => d.country_name)
+                    .enter()
+                    .append('image')
+                    .attr('class', 'imageLabel')
+                    .attr('width', 85)
+                    .attr('height', yLeft(1) - yLeft(0) - barPadding)
+                    .attr('x', function (d) {
+                        if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                        else return xLeft(d.value) + 170
+                    })
+                    .attr('y', d => yLeft(d.rank) + 5)
+                    .attr("xlink:href", d => "/images/" + d.country_code + ".png")
+                    .on("mouseover", mouseover)
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave);
+
+                svgRight.selectAll('image')
+                    .data(allTimeBestSlice, d => d.Country_Name)
+                    .enter()
+                    .append('image')
+                    .attr('class', 'imageLabel')
+                    .attr('width', 85)
+                    .attr('height', yRight(1) - yRight(0) - barPadding)
+                    .attr('x', function (d) {
+                        if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                        else return xRight(d.value) + 170
+                    })
+                    .attr('y', d => yRight(d.rank) + 5)
+                    .attr("xlink:href", d => "/images/" + d.Country_Code + ".png")
+                    .on("mouseover", mouseoverAllMedals)
+                    .on("mousemove", mousemoveAllMedals)
+                    .on("mouseleave", mouseleave);
+
+
+                svgLeft.selectAll('text.valueLabel')
+                    .data(yearSlice, d => d.country_name)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'valueLabel')
+                    .attr('x', d => xLeft(d.value) + 5)
+                    .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1)
+                    .text(d => (d.value));
+
+                svgRight.selectAll('text.valueLabel')
+                    .data(allTimeBestSlice, d => d.Country_Name)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'valueLabel')
+                    .attr('x', d => xRight(d.value) + 5)
+                    .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1)
+                    .text(d => (d.value));
+
+                let bottomDiv = d3.select("body").append("div")
+                    .attr('class', 'bottomDiv')
+
+                let leftDiv = bottomDiv.append("div")
+                    .attr('class', 'leftDiv')
+
+                let prevButton = leftDiv.append('button')
+                    .text("Previous")
+                    .attr("class", "leftButtons")
+                    .style("float", "left")
+                    .on('click', function () {
+                        changeMedalsButtonFlag = false
+                        nextYear(-4)
+                    });
+
+                let isPlay = false
+
+                let runInInterval
+                let playStopButton = leftDiv.append('button')
+                    .attr("class", "playButton")
+                    .on('click', function () {
+                        if (isPlay == false) {
+                            playButton.remove()
+                            stopButton = playStopButton.append('i')
+                                .attr("class", "fa fa-stop")
+                            runInInterval = d3.interval(e => {
+                                changeMedalsButtonFlag = false
+                                nextYear(4)
+                            }, 3000);
+                        }
+                        else {
+                            stopButton.remove()
+                            playButton = playStopButton.append('i')
+                                .attr("class", "fa fa-play")
+                            runInInterval.stop()
+                        }
+                        isPlay = !isPlay
+
+                    })
+
+                let stopButton
+                let playButton = playStopButton.append('i')
+                    .attr("class", "fa fa-play")
+
+                let nextButton = leftDiv.append('button')
+                    .text("Next")
+                    .attr("class", "leftButtons")
+                    .style("float", "right")
+                    .on('click', function () {
+                        changeMedalsButtonFlag = false
+                        nextYear(4)
+                    });
+
+                let rightDiv = bottomDiv.append("div")
+                    .attr('class', 'rightDiv')
+
+                let allMedalsButton = rightDiv.append('button')
+                    .text("All medals")
+                    .attr('class', 'rightButtons')
+                    .style('background-color', "#339e45")
+                    .on('click', function () {
+                        currentMedalsShow = "all"
+                        changeMedalsButtonFlag = true
+                        nextYear(0)
+                    });
+
+                let goldMedalsButton = rightDiv.append('button')
+                    .text("Gold")
+                    .attr('class', 'rightButtons')
+                    .style('background-color', "#FFDF00")
+                    .on('click', function () {
+                        currentMedalsShow = "gold"
+                        changeMedalsButtonFlag = true
+                        nextYear(0)
+                    });
+
+                let silverMedalsButton = rightDiv.append('button')
+                    .text("Silver")
+                    .attr('class', 'rightButtons')
+                    .style('background-color', "#C0C0C0")
+                    .on('click', function () {
+                        currentMedalsShow = "silver"
+                        changeMedalsButtonFlag = true
+                        nextYear(0)
+                    });
+
+                let bronzeMedalsButton = rightDiv.append('button')
+                    .text("Bronze")
+                    .attr('class', 'rightButtons')
+                    .style('background-color', "#CD7F32")
+                    .on('click', function () {
+                        currentMedalsShow = "bronze"
+                        changeMedalsButtonFlag = true
+                        nextYear(0)
+                    });
+
+
+                var tooltip = d3.select("body")
+                    .append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0);
+
+                var goldTooltipText = tooltip.append('p')
+                    .style('background-color', "#FFDF00")
+                    .attr('class', 'tooltipText')
+
+                var silverTooltipText = tooltip.append('p')
+                    .style('background-color', "#C0C0C0")
+                    .attr('class', 'tooltipText')
+
+                var bronzeTooltipText = tooltip.append('p')
+                    .style('background-color', "#CD7F32")
+                    .attr('class', 'tooltipText')
+
+
+                function countAllTimeBest(untilYear) {
+                    let untilYearSlice = data.filter(d => d.year <= year)
+
+                    allTimeData.forEach(d => {
+                        d.AllTimeMedals = +0
+                        d.AllTimeGold = +0
+                        d.AllTimeSilver = +0
+                        d.AllTimeBronze = +0
+                    })
+
+                    untilYearSlice.forEach(untilData => {
+                        allTimeData.find(item => item.Country_Code == untilData.Country_Code).AllTimeMedals += +untilData.Medals
+                        allTimeData.find(item => item.Country_Code == untilData.Country_Code).AllTimeGold += +untilData.Gold
+                        allTimeData.find(item => item.Country_Code == untilData.Country_Code).AllTimeSilver += +untilData.Silver
+                        allTimeData.find(item => item.Country_Code == untilData.Country_Code).AllTimeBronze += +untilData.Bronze
+                    })
+
+                    allTimeData.forEach((d, i) => {
+                        if (untilYear != 1896) d.lastValue = +d.value
+
+                        if (currentMedalsShow == "all") d.value = +d.AllTimeMedals
+                        else if (currentMedalsShow == "gold") d.value = +d.AllTimeGold
+                        else if (currentMedalsShow == "silver") d.value = +d.AllTimeSilver
+                        else if (currentMedalsShow == "bronze") d.value = +d.AllTimeBronze
+
+                        if (untilYear == 1896) d.lastValue = +d.value
+
+                    })
+
+                    let allTimeBest
+                    if (currentMedalsShow == "all")
+                        allTimeBest = allTimeData.sort((a, b) => b.AllTimeMedals - a.AllTimeMedals).slice(0, top_n)
+                    else if (currentMedalsShow == "gold")
+                        allTimeBest = allTimeData.sort((a, b) => b.AllTimeGold - a.AllTimeGold).slice(0, top_n)
+                    else if (currentMedalsShow == "silver")
+                        allTimeBest = allTimeData.sort((a, b) => b.AllTimeSilver - a.AllTimeSilver).slice(0, top_n)
+                    else if (currentMedalsShow == "bronze")
+                        allTimeBest = allTimeData.sort((a, b) => b.AllTimeBronze - a.AllTimeBronze).slice(0, top_n)
+
+                    allTimeBest.forEach((d, i) => {
+                        d.rank = i
+                    })
+
+                    return allTimeBest
+
+                }
+
+
+                function nextYear(yearGap) {
+
+                    if (year == 2020 && yearGap == 4) year = 1896;
+                    else if (year == 1896 && yearGap == -4) year = 2020;
+                    else if (year == 1912 && yearGap == 4) year = 1920;
+                    else if (year == 1920 && yearGap == -4) year = 1912;
+                    else if (year == 1936 && yearGap == 4) year = 1948;
+                    else if (year == 1948 && yearGap == -4) year = 1936;
+                    else if (yearGap == 4 || yearGap == -4) year = year + yearGap;
+
+                    yearSlice = data.filter(d => d.year == year).slice(0, top_n);
+
+                    yearSlice.forEach((d, i) => d.rank = i);
+
+                    allTimeBestSlice = countAllTimeBest(year)
+
+                    xLeft.domain([0, d3.max(yearSlice, d => d.value)]);
+                    xRight.domain([0, d3.max(allTimeBestSlice, d => d.value)]);
+
+                    svgLeft.select('.xAxis')
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .call(xAxisLeft);
+
+                    svgRight.select('.xAxis')
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .call(xAxisRight);
+
+                    let barsLeft = svgLeft.selectAll('.bar').data(yearSlice, d => d.country_name);
+                    let barsRight = svgRight.selectAll('.bar').data(allTimeBestSlice, d => d.Country_Name);
+
+                    barsLeft
+                        .enter()
+                        .append('rect')
+                        .attr('class', 'bar')
+                        .attr('x', xLeft(0) + 1)
+                        .attr('width', d => xLeft(d.value) - xLeft(0) - 1)
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .attr('height', yLeft(1) - yLeft(0) - barPadding)
+                        .style('fill', d => colors.find(item => item.name == d.country_code).color)
+                        .on("mouseover", mouseover)
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yLeft(d.rank) + 5);
+
+                    barsRight
+                        .enter()
+                        .append('rect')
+                        .attr('class', 'bar')
+                        .attr('x', xRight(0) + 1)
+                        .attr('width', d => xRight(d.value) - xRight(0) - 1)
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .attr('height', yRight(1) - yRight(0) - barPadding)
+                        .style('fill', d => colors.find(item => item.name == d.Country_Code).color)
+                        .on("mouseover", mouseoverAllMedals)
+                        .on("mousemove", mousemoveAllMedals)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yRight(d.rank) + 5);
+
+
+
+                    barsLeft
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('width', d => xLeft(d.value) - xLeft(0) - 1)
+                        .attr('y', d => yLeft(d.rank) + 5);
+
+                    barsRight
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('width', d => xRight(d.value) - xRight(0) - 1)
+                        .attr('y', d => yRight(d.rank) + 5);
+
+                    barsLeft
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('width', d => xLeft(d.value) - xLeft(0) - 1)
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .remove();
+
+                    barsRight
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('width', d => xRight(d.value) - xRight(0) - 1)
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .remove();
+
+                    let labelsLeft = svgLeft.selectAll('.label')
+                        .data(yearSlice, d => d.country_name);
+
+                    let labelsRight = svgRight.selectAll('.label')
+                        .data(allTimeBestSlice, d => d.Country_Name);
+
+                    labelsLeft
+                        .enter()
+                        .append('text')
+                        .attr('class', 'label')
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(top_n + 1) + 5 + ((yLeft(1) - yLeft(0)) / 2))
+                        .style('text-anchor', 'end')
+                        .html(d => d.country_name)
+                        .on("mouseover", mouseover)
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1);
+
+                    labelsRight
+                        .enter()
+                        .append('text')
+                        .attr('class', 'label')
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(top_n + 1) + 5 + ((yRight(1) - yRight(0)) / 2))
+                        .style('text-anchor', 'end')
+                        .html(d => d.Country_Name)
+                        .on("mouseover", mouseoverAllMedals)
+                        .on("mousemove", mousemoveAllMedals)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1);
+
+
+
+                    labelsLeft
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1);
+
+
+                    labelsRight
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1);
+
+                    labelsLeft
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .remove();
+
+                    labelsRight
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .remove();
+
+
+                    let flagsLeft = svgLeft.selectAll('.imageLabel')
+                        .data(yearSlice, d => d.country_name);
+
+                    let flagsRight = svgRight.selectAll('.imageLabel')
+                        .data(allTimeBestSlice, d => d.Country_Name);
+
+
+                    flagsLeft
+                        .enter()
+                        .append('image')
+                        .attr('class', 'imageLabel')
+                        .attr('width', 85)
+                        .attr('height', yLeft(1) - yLeft(0) - barPadding)
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .attr("xlink:href", d => "/images/" + d.country_code + ".png")
+                        .on("mouseover", mouseover)
+                        .on("mousemove", mousemove)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yLeft(d.rank) + 5);
+
+                    flagsRight
+                        .enter()
+                        .append('image')
+                        .attr('class', 'imageLabel')
+                        .attr('width', 85)
+                        .attr('height', yRight(1) - yRight(0) - barPadding)
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .attr("xlink:href", d => "/images/" + d.Country_Code + ".png")
+                        .on("mouseover", mouseoverAllMedals)
+                        .on("mousemove", mousemoveAllMedals)
+                        .on("mouseleave", mouseleave)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yRight(d.rank) + 5);
+
+                    flagsLeft
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(d.rank) + 5);
+
+                    flagsRight
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(d.rank) + 5);
+
+                    flagsLeft
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xLeft(d.value) > 270) return xLeft(d.value) - 85 - 2
+                            else return xLeft(d.value) + 170
+                        })
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .remove();
+
+                    flagsRight
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', function (d) {
+                            if (xRight(d.value) > 270) return xRight(d.value) - 85 - 2
+                            else return xRight(d.value) + 170
+                        })
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .remove();
+
+
+
+                    let valueLabelsLeft = svgLeft.selectAll('.valueLabel').data(yearSlice, d => d.country_name);
+
+                    let valueLabelsRight = svgRight.selectAll('.valueLabel').data(allTimeBestSlice, d => d.Country_Name);
+
+                    valueLabelsLeft
+                        .enter()
+                        .append('text')
+                        .attr('class', 'valueLabel')
+                        .attr('x', d => xLeft(d.value) + 5)
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .text(d => d.value)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1);
+
+
+                    valueLabelsRight
+                        .enter()
+                        .append('text')
+                        .attr('class', 'valueLabel')
+                        .attr('x', d => xRight(d.value) + 5)
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .text(d => d.value)
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1);
+
+                    valueLabelsLeft
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', d => xLeft(d.value) + 5)
+                        .attr('y', d => yLeft(d.rank) + 5 + ((yLeft(1) - yLeft(0)) / 2) + 1)
+                        .tween("text", function (d) {
+                            if (changeMedalsButtonFlag == false) {
+                                let i = d3.interpolateRound(0, d.value);
+                                return function (t) {
+                                    this.textContent = i(t);
+                                };
+                            }
+                        });
+
+                    valueLabelsRight
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', d => xRight(d.value) + 5)
+                        .attr('y', d => yRight(d.rank) + 5 + ((yRight(1) - yRight(0)) / 2) + 1)
+                        .tween("text", function (d) {
+                            let i = d3.interpolateRound(d.lastValue, d.value);
+                            return function (t) {
+                                this.textContent = i(t);
+                            };
+                        });
+
+
+                    valueLabelsLeft
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', d => xLeft(d.value) + 5)
+                        .attr('y', d => yLeft(top_n + 1) + 5)
+                        .remove();
+
+                    valueLabelsRight
+                        .exit()
+                        .transition()
+                        .duration(tickDuration)
+                        .ease(d3.easeLinear)
+                        .attr('x', d => xRight(d.value) + 5)
+                        .attr('y', d => yRight(top_n + 1) + 5)
+                        .remove();
+
+                    titleLeft.html(yearSlice[0].Host_country + ", " + yearSlice[0].Host_city + ": " + year);
+
+                    titleRight.html('All time medals 1896 - ' + year);
+
+                    if (currentMedalsShow == "all")
+                        subTitleRight.style('fill', '#339e45').html("[all medals]");
+                    else if (currentMedalsShow == "gold")
+                        subTitleRight.style('fill', '#FFDF00').html("[gold medals]");
+                    else if (currentMedalsShow == "silver")
+                        subTitleRight.style('fill', '#C0C0C0').html("[silver medals]");
+                    else if (currentMedalsShow == "bronze")
+                        subTitleRight.style('fill', '#CD7F32').html("[bronze medals]");
+
+                }
+
+            })
+
+        });
+
+
+
+
+    </script>
+</body>
